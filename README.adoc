@@ -497,7 +497,7 @@ scp -r ../etcd-backup/* core@192.168.50.10:.
 ----
 
 . Create new Control Plane node
-This procedure depends on your specific environment. Be sure that that the ignition files are ready and wait a few minutes after the machines have been booted.
+This procedure depends on your specific environment.  Be sure that that the ignition files are ready and that you approve the CSRs, which are created few minutes after the new node has been registered at the cluster.
 
 . Login to the recovery node and verify the etcd members
 +
