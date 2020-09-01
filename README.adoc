@@ -35,14 +35,7 @@ endif::[]
 :revnumber: 1.0.0
 //A simple http://asciidoc.org[AsciiDoc] document.
 
-## Disaster Recovery Tests for ETCD
-
-Testing DR for an OpenShift Cluster is a crucial thing. There are basically 2 big tests which might be considered:
-
-. a single etcd member dies
-. the majority of etcd members dies
-
-Both scenarios shall be reflected in this simple document.
+## Disaster Recovery Test for single ETCD loss
 
 ### Prerequisites and assumptions
 
@@ -363,7 +356,6 @@ storage                                    4.5.7     True        False         F
 ### Verify etcd
 
 . Login into one etcd member and check the available members
-+
 +
 [source,bash]
 ----
