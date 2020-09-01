@@ -1,0 +1,209 @@
+font:
+  heading_margin_top: 1
+  catalog:
+    Red Hat Display:
+      normal: RedHatDisplay-Regular.ttf
+      italic: RedHatDisplay-Italic.ttf
+      bold:   RedHatDisplay-Bold.ttf
+      bold_italic: RedHatDisplay-BoldItalic.ttf
+    Red Hat Text:
+      normal: RedHatText-Regular.ttf
+      italic: RedHatText-Italic.ttf
+      bold:   RedHatText-Bold.ttf
+      bold_italic: RedHatText-BoldItalic.ttf
+page:
+  background_color: ffffff
+  layout: portrait
+  margin: [1.4in, 0.67in, 1.5in, 0.67in]
+  size: A4
+#some additional variables
+base:
+  align: left
+  font_color: 333333
+  font_family: Red Hat Display
+  font_size: 9
+  line_height_length: 12
+  line_height: $base_line_height_length / $base_font_size
+  font_size_large: round($base_font_size * 1.25)
+  font_size_small: round($base_font_size * 0.85)
+  font_size_min: $base_font_size * 0.75
+  font_style: normal
+  border_color: eeeeee
+  border_radius: 4
+  border_width: 0.5
+# FIXME vertical_rhythm is weird; we should think in terms of ems
+#vertical_rhythm: $base_line_height_length * 2 / 3
+# correct line height for Noto Serif metrics (comes with built-in line height)
+vertical_rhythm: $base_line_height_length
+horizontal_rhythm: $base_line_height_length
+# QUESTION should vertical_spacing be block_spacing instead?
+vertical_spacing: $vertical_rhythm
+link:
+  font_color: 428bca
+literal:
+  font_color: b12146
+heading:
+  #font_color: 181818
+  font_color: $base_font_color
+  font_family: $base_font_family
+  font_style: bold
+  line_height: 1.2
+  margin_top: $vertical_rhythm * 0.2
+  margin_bottom: $vertical_rhythm * 0.8
+title_page:
+  align: left
+  title:
+    font_size: 24
+    font_style: bold
+    line_height: 1.5
+  subtitle:
+    font_size: 16
+    font_style: bold
+    line_height: 1
+  authors:
+    margin_top: $base_font_size * 1.25
+    font_size: $base_font_size_large
+    font_color: 181818
+  revision:
+    margin_top: $base_font_size * 1.25
+  background-image: image:../images/RH_Consulting_header_2700x750_grey.png[position=top]
+block:
+  margin_top: 0
+  margin_bottom: $vertical_rhythm
+caption:
+  align: left
+  font_style: italic
+  font_size: 9
+  # FIXME perhaps set line_height instead of / in addition to margins?
+  margin_inside: $vertical_rhythm / 3
+  margin_outside: 0
+lead:
+  font_size: $base_font_size_large
+  line_height: 1.4
+abstract:
+  font_color: 5c6266
+  font_size: $lead_font_size
+  line_height: $lead_line_height
+  font_style: italic
+admonition:
+  border_color: #eeeeee
+  #  border_width: $base_border_width
+  padding: [0, $horizontal_rhythm, 0, $horizontal_rhythm]
+blockquote:
+  font_color: $base_font_color
+  font_size: $base_font_size_large
+  border_color: $base_border_color
+  border_width: 5
+  padding: [$vertical_rhythm / 2, $horizontal_rhythm, $vertical_rhythm / -2, $horizontal_rhythm + $blockquote_border_width / 2]
+  cite_font_size: $base_font_size_small
+  cite_font_color: 999999
+code:
+  font_color: $base_font_color
+  font_family: $literal_font_family
+  font_size: ceil($base_font_size * 0.7)
+  #font_size: ceil($base_font_size)
+  padding: $code_font_size
+  line_height: 1.25
+  background_color: f5f5f5
+  border_color: cccccc
+  border_radius: $base_border_radius
+  border_width: 0.75
+conum:
+  font_color: $literal_font_color
+  font_size: $base_font_size
+  line_height: 4 / 3
+example:
+  border_color: $base_border_color
+  border_radius: $base_border_radius
+  border_width: 0.75
+  background_color: transparent
+  # FIXME reenable margin bottom once margin collapsing is implemented
+  padding: [$vertical_rhythm, $horizontal_rhythm, 0, $horizontal_rhythm]
+image:
+  align: left
+prose:
+  margin_top: 0
+  margin_bottom: $vertical_rhythm
+sidebar:
+  border_color: $page_background_color
+  border_radius: $base_border_radius
+  border_width: $base_border_width
+  background_color: eeeeee
+  # FIXME reenable margin bottom once margin collapsing is implemented
+  padding: [$vertical_rhythm, $vertical_rhythm * 1.25, 0, $vertical_rhythm * 1.25]
+  title:
+    align: center
+    font_color: $heading_font_color
+    font_family: $heading_font_family
+    font_size: $heading_h4_font_size
+    font_style: $heading_font_style
+thematic_break:
+  border_color: $base_border_color
+  border_style: solid
+  border_width: $base_border_width
+  margin_top: $vertical_rhythm * 0.5
+  margin_bottom: $vertical_rhythm * 1.5
+description_list:
+  term_font_style: italic
+  term_spacing: $vertical_rhythm / 4
+  description_indent: $horizontal_rhythm * 1.25
+outline_list:
+  indent: $horizontal_rhythm * 1.5
+  # NOTE item_spacing applies to list items that do not have complex content
+  item_spacing: $vertical_rhythm / 2
+table:
+  background_color: $page_background_color
+  head_background_color: cccccc
+  #head_font_color: $base_font_color
+  head_font_style: bold
+  foot_background_color: f0f0f0
+  border_color: dddddd
+  border_width: $base_border_width
+  # HACK accounting for line-height
+  cell_padding: [3, 3, 6, 3]
+toc:
+  dot_leader_color: dddddd
+  #dot_leader_content: '. '
+  indent: $horizontal_rhythm
+  line_height: 1.4
+header:
+  height: 1.3in
+  background-image:  image:../images/RH_Consulting_header_2700x400_grey.png[position=top]
+footer:
+  font_size: $base_font_size_small
+  font_color: $base_font_color
+  font_family: Red Hat Display
+  font_style: bold
+  # NOTE if background_color is set, background and border will span width of page
+  border_color: dddddd
+  border_width: 0.25
+  height: 0.75in
+  line_height: 1
+  padding: [ 15, 1, 0, 1]
+  vertical_align: top
+  recto:
+    left:
+      content: |
+        {cust} +
+        {confidentiality}
+    center:
+      content: |
+        {subject}
+    right:
+      content: |
+        {page-number} +
+        {revnumber}
+  verso:
+    left:
+      content: |
+        {cust} +
+        {confidentiality}
+    center:
+      content: |
+        {subject}
+    right:
+      content: |
+        {page-number} +
+        {revnumber}
+note:
+  background_color: #cccccc

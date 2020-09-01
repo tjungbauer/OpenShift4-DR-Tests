@@ -1,0 +1,4 @@
+Further copies of this document can be obtained from Red Hat.
+Preferably contact;
+
+* {consultantname} <{consultantmail}>
