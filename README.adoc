@@ -112,7 +112,7 @@ master-1    Ready      master,worker   20h   v1.18.3+2cf11e2
 master-2    NotReady   master,worker   20h   v1.18.3+2cf11e2
 ----
 
-. Check what is ahppening
+. Check what is happening
 .. Determine if the machine is not running
 +
 [source,bash]
@@ -275,6 +275,8 @@ virsh list --all
  6     ocp-compute-1                  running
  7     ocp-compute-2                  running
 ----
++
+CAUTION: Be sure that the disk files are removed from /var/lib/libvirt/images (or that network boot is forced)
 
 . Create new Control Plane node
 This procedure depends on your specific environment. Be sure that that the ignition files are ready and that you approve the CSRs, which are created few minutes after the new node has been registered at the cluster.
@@ -476,6 +478,8 @@ virsh undefine ocp-master-2
 virsh undefine ocp-master-1
 ----
 
+CAUTION: Be sure that the disk files are removed from /var/lib/libvirt/images (or that network boot is forced)
+
 We have now lost 2 control plane nodes. Only ocp-master-0 is left and trying to keep everything alive. ocp-master-0 will now be our recovery node. 
 
 ### Restoring to a previous cluster state
@@ -494,6 +498,13 @@ scp -r ../etcd-backup/* core@192.168.50.10:.
 
 . Create new Control Plane node
 This procedure depends on your specific environment. Be sure that that the ignition files are ready and wait a few minutes after the machines have been booted.
+
+. Login to the recovery node and verify the etcd members
++
+[source,bash]
+----
+ETCDCTL_API=3 nsenter -n -p -m -t 12211 -- etcdctl endpoint status --write-out=table --endpoints=https://192.168.50.10:2379,https://192.168.50.11:2379,https://192.168.50.12:2379 --cert=/etc/kubernetes/static-pod-certs/secrets/etcd-all-serving/etcd-serving-master-0.crt --key=/etc/kubernetes/static-pod-certs/secrets/etcd-all-serving/etcd-serving-master-0.key --cacert=/etc/kubernetes/static-pod-certs/configmaps/etcd-serving-ca/ca-bundle.crt
+----
 
 . Login to recovery node and start the restore process
 +
@@ -541,6 +552,8 @@ static-pod-resources/kube-scheduler-pod-9/kube-scheduler-pod.yaml
 logout
 Connection to 192.168.50.10 closed.
 ----
++
+WARNING: Be sure that all containers are gone from the machine in case some weird issues happen. Check this using "sudo crictl ps"
 
 . Restart *kubelet.service* on *ALL* control planes
 +
