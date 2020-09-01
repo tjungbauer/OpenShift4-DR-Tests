@@ -37,10 +37,10 @@ endif::[]
 
 ## Disaster Recovery Test for single ETCD loss
 
+Reference: https://docs.openshift.com/container-platform/4.5/backup_and_restore/replacing-unhealthy-etcd-member.html 
+
 ### Prerequisites and assumptions
 
-. You need a OpenShift Cluster. Duh!
-. Be sure you have a etcd backup. Check this out: https://github.com/sushilsuresh/ocp4-ansible-roles/tree/master/roles/etcd-backup 
 . Be sure you have the ignition files ready and you are able to re-create control plane machines.
 . This manual is using local cluster based on *UPI* deployment and the command *virsh*. You might need to re-create the machines in a different way.
 
@@ -409,3 +409,213 @@ https://192.168.50.10:2379 is healthy: successfully committed proposal: took = 2
 https://192.168.50.12:2379 is healthy: successfully committed proposal: took = 35.904635ms
 https://192.168.50.11:2379 is healthy: successfully committed proposal: took = 36.332911ms
 ----
+
+---
+
+## Disaster Recovery Test for multiple ETCD loss
+
+Reference: https://docs.openshift.com/container-platform/4.5/backup_and_restore/disaster_recovery/scenario-2-restoring-cluster-state.html
+
+CAUTION: There will be dragons.
+
+Whenever the majority of the etcd cluster is lost, OpenShift will enter in a read-only mode. 
+All applications, which are running at the momemt, will continue to run. However, no new pods can be rolled out. *IT IS SERIOUS.* 
+
+
+### Prerequisites and assumptions
+
+. Be sure you have a etcd backup. Check this out: https://github.com/sushilsuresh/ocp4-ansible-roles/tree/master/roles/etcd-backup 
+. Be sure you have the ignition files ready and you are able to re-create control plane machines.
+. This manual is using local cluster based on *UPI* deployment and the command *virsh*. You might need to re-create the machines in a different way.
+. You must have access via SSH to the control plane nodes. 
+
+
+### Initial Setup
+
+Initially 3 control planes and 3 worker nodes are running:
+
+[source,bash]
+----
+virsh list --all
+
+ Id    Name                           State
+----------------------------------------------------
+ 2     ocp-master-0                   running
+ 3     ocp-master-1                   running
+ 4     ocp-master-2                   running
+ 5     ocp-compute-0                  running
+ 6     ocp-compute-1                  running
+ 7     ocp-compute-2                  running
+----
+
+### Let's kill ocp-master-1 and ocp-master-2
+
+[source,bash]
+----
+virsh destroy ocp-master-2
+virsh destroy ocp-master-1
+
+virsh list --all
+ Id    Name                           State
+----------------------------------------------------
+ 2     ocp-master-0                   running
+ 5     ocp-compute-0                  running
+ 6     ocp-compute-1                  running
+ 7     ocp-compute-2                  running
+ -     ocp-master-1                   shut off
+ -     ocp-master-2                   shut off
+----
+
+The cluster will not like this very much. Soon it will tell you that the health is not good and that nodes have been lost. 
+
+Remove the broken control planes completely from the system, so they can be reinstalled:
+
+[source,bash]
+----
+virsh undefine ocp-master-2
+virsh undefine ocp-master-1
+----
+
+We have now lost 2 control plane nodes. Only ocp-master-0 is left and trying to keep everything alive. ocp-master-0 will now be our recovery node. 
+
+### Restoring to a previous cluster state
+
+. Copy the etcd backup directory to the recovery node
++
+[source,bash]
+----
+ll ../etcd-backup/20200901T100009
+total 118M
+-rw------- 1 root root 118M Sep  1 12:00 snapshot_2020-09-01_100009.db
+-rw------- 1 root root  62K Sep  1 12:00 static_kuberesources_2020-09-01_100009.tar.gz
+
+scp -r ../etcd-backup/* core@192.168.50.10:.
+----
+
+. Create new Control Plane node
+This procedure depends on your specific environment. Be sure that that the ignition files are ready and wait a few minutes after the machines have been booted.
+
+. Login to recovery node and start the restore process
++
+[source,bash]
+----
+ssh -i .ssh/id_rsa core@192.168.50.10
+
+[core@master-0 ~]$ ll
+total 0
+drwxr-xr-x. 2 core core 96 Sep  1 12:02 20200901T100009
+
+[core@master-0 ~]$ pwd
+/var/home/core
+
+[core@master-0 ~]$ sudo -E /usr/local/bin/cluster-restore.sh 20200901T100009/
+
+...stopping kube-apiserver-pod.yaml
+...stopping kube-controller-manager-pod.yaml
+...stopping kube-scheduler-pod.yaml
+...stopping etcd-pod.yaml
+Waiting for container etcd to stop
+..complete
+Waiting for container etcdctl to stop
+...........................complete
+Waiting for container etcd-metrics to stop
+complete
+Waiting for container kube-controller-manager to stop
+complete
+Waiting for container kube-apiserver to stop
+complete
+Waiting for container kube-scheduler to stop
+complete
+Moving etcd data-dir /var/lib/etcd/member to /var/lib/etcd-backup
+starting restore-etcd static pod
+starting kube-apiserver-pod.yaml
+static-pod-resources/kube-apiserver-pod-11/kube-apiserver-pod.yaml
+starting kube-controller-manager-pod.yaml
+static-pod-resources/kube-controller-manager-pod-4/kube-controller-manager-pod.yaml
+starting kube-scheduler-pod.yaml
+static-pod-resources/kube-scheduler-pod-9/kube-scheduler-pod.yaml
+[core@master-0 ~]$ sudo systemctl restart kubelet.service
+[core@master-0 ~]$
+[core@master-0 ~]$
+[core@master-0 ~]$ exit
+logout
+Connection to 192.168.50.10 closed.
+----
+
+. Restart *kubelet.service* on *ALL* control planes
++
+[source,bash]
+----
+ssh -i .ssh/id_rsa core@192.168.50.11
+[core@master-1 ~]$ sudo systemctl restart kubelet.service
+----
+
+. Force etcd redeployment
++
+[source,bash]
+----
+oc get etcd -o=jsonpath='{range .items[0].status.conditions[?(@.type=="NodeInstallerProgressing")]}{.reason}{"\n"}{.message}{"\n"}'
+
+AllNodesAtLatestRevision
+3 nodes are at revision 5
+----
+
+. Update the kubeapiserver
++
+[source,bash]
+----
+oc patch kubeapiserver cluster -p='{"spec": {"forceRedeploymentReason": "recovery-'"$( date --rfc-3339=ns )"'"}}' --type=merge
+
+kubeapiserver.operator.openshift.io/cluster patched
+
+# Verify
+oc get kubeapiserver -o=jsonpath='{range .items[0].status.conditions[?(@.type=="NodeInstallerProgressing")]}{.reason}{"\n"}{.message}{"\n"}'
+
+AllNodesAtLatestRevision
+3 nodes are at revision 11
+----
+
+. Update the kubecontrollermanager
++
+[source,bash]
+----
+oc patch kubecontrollermanager cluster -p='{"spec": {"forceRedeploymentReason": "recovery-'"$( date --rfc-3339=ns )"'"}}' --type=merge
+
+kubecontrollermanager.operator.openshift.io/cluster patched
+
+# Verify
+oc get kubecontrollermanager -o=jsonpath='{range .items[0].status.conditions[?(@.type=="NodeInstallerProgressing")]}{.reason}{"\n"}{.message}{"\n"}'
+
+AllNodesAtLatestRevision
+3 nodes are at revision 10
+----
+
+. Update the kubescheduler
++
+[source,bash]
+----
+oc patch kubescheduler cluster -p='{"spec": {"forceRedeploymentReason": "recovery-'"$( date --rfc-3339=ns )"'"}}' --type=merge
+
+kubescheduler.operator.openshift.io/cluster patched
+
+# Verify 
+oc get kubescheduler -o=jsonpath='{range .items[0].status.conditions[?(@.type=="NodeInstallerProgressing")]}{.reason}{"\n"}{.message}{"\n"}'
+
+AllNodesAtLatestRevision
+3 nodes are at revision 11
+----
+
+### Verify etcd Cluster health
+
+[source,bash]
+----
+oc rsh -n openshift-etcd etcd-master-0
+
+sh-4.2# etcdctl endpoint health --cluster
+
+https://192.168.50.10:2379 is healthy: successfully committed proposal: took = 23.137535ms
+https://192.168.50.12:2379 is healthy: successfully committed proposal: took = 26.548106ms
+https://192.168.50.11:2379 is healthy: successfully committed proposal: took = 33.343579ms
+----
+
+CAUTION: Wait until all cluster operator are up and running again. This can take many many minutes.
